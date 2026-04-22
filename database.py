@@ -1,7 +1,10 @@
+import os
+
 from pyairtable import Api
 from datetime import datetime, timezone
-from config import AIRTABLE_TOKEN, AIRTABLE_BASE_ID
 
+AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN")
+AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID")
 api = Api(AIRTABLE_TOKEN)
 games_table = api.table(AIRTABLE_BASE_ID, "games")
 bookings_table = api.table(AIRTABLE_BASE_ID, "bookings")

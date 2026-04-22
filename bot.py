@@ -1,13 +1,17 @@
 import asyncio
 import vkbottle
+import os
+
+
 from datetime import datetime, timezone
 from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback, GroupEventType
 from vkbottle.bot import Bot, Message
-from config import TOKEN
+
 from database import get_games, get_bookings, add_booking, update_booked_count, get_user_bookings, cancel_booking, \
     get_waiting_first, change_status, update_notified
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
 
 def format_date(game: dict) -> str:
