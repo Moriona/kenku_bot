@@ -1,0 +1,7 @@
+meta:
+  environment: python
+  toolVersion: "3.11"
+run:
+  persistenceMount: /data
+  containerPort: 80
+  command: python bot.py
