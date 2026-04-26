@@ -3,7 +3,7 @@ import vkbottle
 import os
 
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback, GroupEventType
 from vkbottle.bot import Bot, Message
 
@@ -20,6 +20,8 @@ def format_date(game: dict) -> str:
         return "дата не указана"
     try:
         dt = datetime.strptime(raw_dt, "%Y-%m-%dT%H:%M:%S.%fZ")
+        delta = timedelta(hours=3)
+        dt = dt + delta
         return dt.strftime("%d.%m.%Y в %H:%M")
     except ValueError:
         return "дата не указана"
