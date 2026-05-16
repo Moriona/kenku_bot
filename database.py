@@ -1,69 +1,202 @@
 import os
-
-from pyairtable import Api
+import requests
 from datetime import datetime, timezone
 
-AIRTABLE_TOKEN = os.environ.get("AIRTABLE_TOKEN")
-AIRTABLE_BASE_ID = os.environ.get("AIRTABLE_BASE_ID")
-api = Api(AIRTABLE_TOKEN)
-games_table = api.table(AIRTABLE_BASE_ID, "games")
-bookings_table = api.table(AIRTABLE_BASE_ID, "bookings")
+TABRIKA_TOKEN = os.environ.get("TABRIKA_TOKEN")
+GAMES_TABLE_ID = os.environ.get("GAMES_TABLE_ID")
+BOOKINGS_TABLE_ID = os.environ.get("BOOKINGS_TABLE_ID")
+DATABASE_ID = os.environ.get("DATABASE_ID")
 
 def get_games():
-    records = games_table.all()
-    return [{"id": record["id"], **record["fields"]} for record in records]
+    response = requests.get(
+        "https://api.tabrica.ru/public/record/list",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': GAMES_TABLE_ID,
+            'response_format': 'names'
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+
+    data = response.json()
+    records = data['data']['records']
+    return [r for r in records if r.get('name')]
+
 
 def get_bookings(game_id):
-    #records = bookings_table.all()
-    formula = f"{{game_id}} = '{game_id}'"
-    records = bookings_table.all(formula=formula)
-    return [{"id": r["id"], **r["fields"]} for r in records]
-    #return [{"id": r["id"], **r["fields"]} for r in records if r["fields"].get("game_id") == game_id]
+    response = requests.get(
+        "https://api.tabrica.ru/public/record/list",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'where': f'(game_id,eq,{game_id})',
+            'response_format': 'names'
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+    data = response.json()
+    records = data['data']['records']
+    return records
 
 def get_waiting_first(game_id):
-    #records = bookings_table.all()
-    #waiting = [{"id": r["id"], **r["fields"]} for r in records if r["fields"].get("game_id") == game_id and r["fields"].get("status") == "waiting"]
-    #if waiting:
-        #return waiting[0]
-    #return None
-    formula = f"AND({{game_id}} = '{game_id}', {{status}} = 'waiting')"
-    records = bookings_table.all(
-        formula=formula,
-        sort=["created_at"]  # или нужное поле сортировки
+    response = requests.get(
+        "https://api.tabrica.ru/public/record/list",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'where': f'(game_id,eq,{game_id})~and(status,eq,waiting)',
+            'response_format': 'names'
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
     )
+    data = response.json()
+    records = data['data']['records']
     if records:
-        r = records[0]
-        return {"id": r["id"], **r["fields"]}
+        return records[0]
     return None
 
-
 def add_booking(game_id, game_name, vk_id, player_name, status = "confirmed"):
-    now_utc = datetime.now(timezone.utc).isoformat()
-    bookings_table.create({
-        "game_id": game_id,
-        "game_name": game_name,
-        "vk_id": vk_id,
-        "player_name": player_name,
-        "status": status,
-        "link": f"vk.com/id{vk_id}",
-        "created_at": now_utc
-    })
+    response = requests.post(
+        "https://api.tabrica.ru/public/record/create",
+        params= {
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID
+        },
+        json={
+            "data": {
+                'game_id': game_id,
+                'game_name': game_name,
+                'vk_id': vk_id,
+                'player_name': player_name,
+                'status': status,
+                'link': f"vk.com/id{vk_id}",
+                'created_at': datetime.now(timezone.utc).isoformat()}
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+    print(response.status_code)
+    print(response.json())
 
 def cancel_booking(booking_id, status="cancelled"):
-    bookings_table.update(booking_id, {"status": status})
+    response = requests.put(
+        "https://api.tabrica.ru/public/record/update",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'row_id': booking_id},
+        json={
+            'data': {
+                'status': status
+            }
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+    print(response.status_code)
+    print(response.json())
 
 def change_status(booking_id, status):
-    bookings_table.update(booking_id, {"status": status})
+    response = requests.put(
+        "https://api.tabrica.ru/public/record/update",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'row_id': booking_id
+        },
+        json = {
+            'data': {
+                'status': status
+            }
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
 
 def update_booked_count(game_id, new_count):
-    games_table.update(game_id, {"booked": new_count})
+    response = requests.put(
+        "https://api.tabrica.ru/public/record/update",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'row_id': game_id
+        },
+        json={
+            'data': {
+                'booked': new_count
+            }
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
 
 def update_notified(game_id, field):
-    games_table.update(game_id, {field: True})
+    response = requests.put(
+        "https://api.tabrica.ru/public/record/update",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': GAMES_TABLE_ID,
+            'row_id': game_id
+        },
+        json={
+            'data': {
+                field: True
+            }
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
 
 def get_user_bookings(vk_id):
-    #records = bookings_table.all()
-    #return [{"id": r["id"], **r["fields"]} for r in records if r["fields"].get("vk_id") == vk_id]
-    formula = f"AND({{vk_id}} = {int(vk_id)}, {{status}} != 'cancelled')"
-    records = bookings_table.all(formula=formula)
-    return [{"id": r["id"], **r["fields"]} for r in records]
+    response = requests.get(
+        "https://api.tabrica.ru/public/record/list",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'where': f'(vk_id,eq,{vk_id})~and(status,eq,confirmed)',
+            'response_format': 'names'
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+    data = response.json()
+    records = data['data']['records']
+    return records
+
+def delete_game(game_id):
+    response = requests.delete(
+        "https://api.tabrica.ru/public/record/delete",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': GAMES_TABLE_ID,
+            'row_id': game_id
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )
+
+def delete_booking(booking_id):
+    response = requests.delete(
+        "https://api.tabrica.ru/public/record/delete",
+        params={
+            'database_id': DATABASE_ID,
+            'table_id': BOOKINGS_TABLE_ID,
+            'row_id': booking_id
+        },
+        headers={
+            'Authorization': f'Bearer {TABRIKA_TOKEN}'
+        }
+    )

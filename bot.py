@@ -1,33 +1,20 @@
 import asyncio
-import vkbottle
 import os
 
-
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback, GroupEventType
 from vkbottle.bot import Bot, Message
 
 from database import get_games, get_bookings, add_booking, update_booked_count, get_user_bookings, cancel_booking, \
-    get_waiting_first, change_status, update_notified
+    get_waiting_first, change_status, update_notified, delete_game, delete_booking
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
 
 def format_date(game: dict) -> str:
-    raw_dt = game.get("datetime")
-    if not raw_dt:
-        return "дата не указана"
-    try:
-        dt = datetime.strptime(raw_dt, "%Y-%m-%dT%H:%M:%S.%fZ")
-        delta = timedelta(hours=3)
-        dt = dt + delta
-        return dt.strftime("%d.%m.%Y в %H:%M")
-    except ValueError:
-        return "дата не указана"
-    #dt = datetime.strptime(raw_dt, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-    #formatted = dt.strftime("%d.%m.%Y в %H:%M")
-    #return formatted
+    return game['datetime']['formatted_date'] + ' (MSK, UTC+3)'
+
 
 def get_game_by_id(games, game_id):
     return next((g for g in games if g.get("id") == game_id), None)
@@ -125,12 +112,7 @@ async def check_notifications():
             raw_dt = game.get("datetime")
             if not raw_dt:
                 continue
-
-            try:
-                dt = datetime.strptime(raw_dt, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-            except ValueError:
-                print(f"Bad datetime for game {game.get('id')}: {raw_dt}")
-                continue
+            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
             delta = dt - datetime.now(timezone.utc)
             if 0 < delta.total_seconds() <= 86400 and not game.get("notified_day", False):
                 game_id = game.get("id")
@@ -155,10 +137,30 @@ async def check_notifications():
     except Exception as e:
         print("Ошибка в check_notifications:", e)
 
+async def cleanup_old_games():
+    async def cleanup_old_games():
+        try:
+            games = get_games()
+            now = datetime.now(timezone.utc)
+            for game in games:
+                raw_dt = game.get("datetime")
+                if not raw_dt:
+                    continue
+                dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
+                if (now - dt).total_seconds() > 3 * 86400:
+                    game_id = game.get("id")
+                    bookings = get_bookings(game_id)
+                    for b in bookings:
+                        delete_booking(b["id"])
+                    delete_game(game_id)
+        except Exception as e:
+            print("Ошибка в cleanup_old_games:", e)
+
+
 async def send_main_schedule(user_id: int):
     games = get_games()
     games_open = [g for g in games if g.get("is_open", False)]
-    games_open = sorted(games_open, key=lambda g: g.get("datetime", ""))
+    games_open = sorted(games_open, key=lambda g: g.get("timestamp", 0))
     response = "Доступные игры:\n\n"
     for game in games_open:
         response += f"🎲 {game['name']}\n"
@@ -184,7 +186,7 @@ async def handle_select_game(event: dict):
     game_id = payload.get("game_id")
     games = get_games()
     games_open = [g for g in games if g.get("is_open", False)]
-    games_open = sorted(games_open, key=lambda g: g.get("datetime", ""))
+    games_open = sorted(games_open, key=lambda g: g.get("timestamp", 0))
     game = get_game_by_id(games, game_id)
     if not game:
         await bot.api.messages.send(
@@ -324,7 +326,7 @@ async def handle_back_to_schedule(event: dict):
     user_id = event["object"]["user_id"]
     games = get_games()
     games_open = [g for g in games if g.get("is_open", False)]
-    games_open = sorted(games_open, key=lambda g: g.get("datetime", ""))
+    games_open = sorted(games_open, key=lambda g: g.get("timestamp", 0))
     await bot.api.messages.send(
         user_id=user_id,
         message="Выберите игру:",
@@ -344,10 +346,11 @@ async def handle_cancel(event: dict):
         return
     booked = game.get("booked", 0)
     cancel_booking(booking_id)
-    #update_booked_count(game["id"], booked - 1)
+    await asyncio.sleep(0.5)
     bookings = get_bookings(game_id)
     confirmed = [b for b in bookings if b.get("status") == "confirmed"]
     update_booked_count(game["id"], len(confirmed))
+    await asyncio.sleep(0.5)
     waiting = get_waiting_first(game_id)
     await bot.api.messages.send(
         user_id=user_id,
@@ -356,7 +359,6 @@ async def handle_cancel(event: dict):
     if not waiting:
         return
     change_status(waiting["id"], status = "confirmed")
-    #update_booked_count(game["id"], booked + 1)
     bookings = get_bookings(game_id)
     confirmed = [b for b in bookings if b.get("status") == "confirmed"]
     update_booked_count(game["id"], len(confirmed))
@@ -438,7 +440,7 @@ async def back_handler(message: Message):
 async def back_to_schedule_handler(message: Message):
     games = get_games()
     games_open = [g for g in games if g.get("is_open", False)]
-    games_open = sorted(games_open, key=lambda g: g.get("datetime", ""))
+    games_open = sorted(games_open, key=lambda g: g.get("timestamp", 0))
     await message.answer("Расписание игр", keyboard=games_list_keyboard(games_open))
 
 @bot.on.message(text="К моему расписанию")
@@ -488,6 +490,7 @@ scheduler = AsyncIOScheduler()
 async def on_startup():
 
     scheduler.add_job(check_notifications, "interval", minutes=30)
+    scheduler.add_job(cleanup_old_games, "interval", hours=24)
     scheduler.start()
     print("Scheduler started")
 
