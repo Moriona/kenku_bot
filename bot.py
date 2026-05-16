@@ -165,11 +165,12 @@ async def send_main_schedule(user_id: int):
     for game in games_open:
         response += f"🎲 {game['name']}\n"
         response += f"📜 {game.get('description', 'не заполнено')}\n"
-        response += f"🥷🏼 Мастер: {game.get('game_master', 'не заполнено')}\n"
+        response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
         response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
+        response += f"💫 Формат: {game.get('format', 'не заполнено')}"
         response += f"📅 {format_date(game)}\n"
-        booked = game.get("booked", 0)
-        max_players = game.get("max_players", 0)
+        booked = game.get("booked") or 0
+        max_players = game.get("max_players") or 0
         if booked >= max_players:
             response += "Мест нет (лист ожидания).\n\n"
         else:
@@ -202,8 +203,8 @@ async def handle_select_game(event: dict):
     response += f"📅 {format_date(game)}\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
-    booked = game.get("booked", 0)
-    max_players = game.get("max_players", 0)
+    booked = game.get("booked") or 0
+    max_players = game.get("max_players") or 0
     if booked >= max_players:
         response += "Мест нет (лист ожидания).\n\n"
     else:
@@ -259,8 +260,8 @@ async def handle_select_user_game(event: dict):
     response += f"📅 {format_date(game)}\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
-    booked = game.get("booked", 0)
-    max_players = game.get("max_players", 0)
+    booked = game.get("booked") or 0
+    max_players = game.get("max_players") or 0
     if booked >= max_players:
         response += "Мест нет (лист ожидания).\n\n"
     else:
@@ -309,8 +310,8 @@ async def handle_book(event: dict):
     if already_booked:
         await bot.api.messages.send(user_id=user_id, message="Вы уже записаны на эту игру.", random_id = 0)
         return
-    booked = game.get("booked", 0)
-    max_players = game.get("max_players", 0)
+    booked = game.get("booked") or 0
+    max_players = game.get("max_players") or 0
     if booked >= max_players:
         add_booking(game_id, game["name"], user_id, player_name, status = "waiting")
         await bot.api.messages.send(
@@ -344,7 +345,7 @@ async def handle_cancel(event: dict):
     game = get_game_by_id(games, game_id)
     if not game:
         return
-    booked = game.get("booked", 0)
+    booked = game.get("booked") or 0
     cancel_booking(booking_id)
     await asyncio.sleep(0.5)
     bookings = get_bookings(game_id)
