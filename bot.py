@@ -167,7 +167,7 @@ async def send_main_schedule(user_id: int):
         response += f"📜 {game.get('description', 'не заполнено')}\n"
         response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
         response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
-        response += f"💫 Формат: {game.get('format', 'не заполнено')}"
+        response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
         response += f"📅 {format_date(game)}\n"
         booked = game.get("booked") or 0
         max_players = game.get("max_players") or 0
@@ -198,8 +198,9 @@ async def handle_select_game(event: dict):
         return
     response = f"🎲 {game['name']}\n"
     response += f"📜 {game.get('description', 'не заполнено')}\n\n"
-    response += f"🥷🏼 Мастер: {game.get('game_master', 'не заполнено')}\n"
+    response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
     response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
+    response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
     response += f"📅 {format_date(game)}\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
@@ -255,8 +256,9 @@ async def handle_select_user_game(event: dict):
         return
     response = f"🎲 {game['name']}\n"
     response += f"📜 {game.get('description', 'не заполнено')}\n\n"
-    response += f"🥷🏼 Мастер: {game.get('game_master', 'не заполнено')}\n"
+    response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
     response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
+    response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
     response += f"📅 {format_date(game)}\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
