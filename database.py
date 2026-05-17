@@ -101,8 +101,6 @@ def cancel_booking(booking_id, status="cancelled"):
             'Authorization': f'Bearer {TABRIKA_TOKEN}'
         }
     )
-    print(response.status_code)
-    print(response.json())
 
 def change_status(booking_id, status):
     response = requests.put(
@@ -127,7 +125,7 @@ def update_booked_count(game_id, new_count):
         "https://api.tabrica.ru/public/record/update",
         params={
             'database_id': DATABASE_ID,
-            'table_id': BOOKINGS_TABLE_ID,
+            'table_id': GAMES_TABLE_ID,
             'row_id': game_id
         },
         json={

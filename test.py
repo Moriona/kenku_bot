@@ -1,3 +1,3 @@
-from bot import handle_cancel
+from database import update_booked_count
 
-handle_cancel(34)
+update_booked_count(39, 3)
