@@ -502,8 +502,8 @@ async def on_startup():
 async def on_shutdown():
     scheduler.shutdown(wait=False)
 
-bot.loop_wrapper.on_startup.append(on_startup)
-bot.loop_wrapper.on_shutdown.append(on_shutdown)
+bot.loop_wrapper.on_startup.append(on_startup())
+bot.loop_wrapper.on_shutdown.append(on_shutdown())
 
 def main():
     print("Бот запускается...")
