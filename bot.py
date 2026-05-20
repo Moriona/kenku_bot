@@ -16,7 +16,7 @@ def format_date(game: dict) -> str:
     datetime_obj = game.get('datetime')
     if datetime_obj is None:
         return "Дата не указана"
-    return datetime_obj.get('formatted_date', 'Дата не указана') + ' (MSK, UTC+3)'
+    return datetime_obj.get('formatted_date', 'Дата не указана')
 
 
 def get_game_by_id(games, game_id):
@@ -170,7 +170,7 @@ async def send_main_schedule(user_id: int):
         response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
         response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
         response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
-        response += f"📅 {format_date(game)}\n"
+        response += f"📅 {format_date(game)} (MSK, UTC+3)\n"
         booked = game.get("booked") or 0
         max_players = game.get("max_players") or 0
         if booked >= max_players:
@@ -203,7 +203,7 @@ async def handle_select_game(event: dict):
     response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
     response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
     response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
-    response += f"📅 {format_date(game)}\n"
+    response += f"📅 {format_date(game)} (MSK, UTC+3)\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
     booked = game.get("booked") or 0
@@ -261,7 +261,7 @@ async def handle_select_user_game(event: dict):
     response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
     response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
     response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
-    response += f"📅 {format_date(game)}\n"
+    response += f"📅 {format_date(game)} (MSK, UTC+3)\n"
     response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
     response += f"💰 Стоимость: {game.get('price', 'бесплатно')}\n\n"
     booked = game.get("booked") or 0
@@ -485,7 +485,7 @@ async def personal_schedule(message: Message):
         response += f"🎲 {game['name']}\n"
         response += f"{game.get('description', 'не заполнено')}\n"
         response += f"Система: {game.get('system', 'не заполнена')}\n"
-        response += f"📅 {format_date(game)}\n"
+        response += f"📅 {format_date(game)} (MSK, UTC+3)\n"
         response += f"Стоимость: {game.get('price', 'бесплатно')}\n\n\n"
     await message.answer(response, keyboard=user_games_list_keyboard(user_games))
 
