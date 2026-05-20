@@ -13,7 +13,10 @@ TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
 
 def format_date(game: dict) -> str:
-    return game['datetime']['formatted_date'] + ' (MSK, UTC+3)'
+    datetime_obj = game.get('datetime')
+    if datetime_obj is None:
+        return "Дата не указана"
+    return datetime_obj.get('formatted_date', 'Дата не указана') + ' (MSK, UTC+3)'
 
 
 def get_game_by_id(games, game_id):
@@ -138,23 +141,22 @@ async def check_notifications():
         print("Ошибка в check_notifications:", e)
 
 async def cleanup_old_games():
-    async def cleanup_old_games():
-        try:
-            games = get_games()
-            now = datetime.now(timezone.utc)
-            for game in games:
-                raw_dt = game.get("datetime")
-                if not raw_dt:
-                    continue
-                dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
-                if (now - dt).total_seconds() > 3 * 86400:
-                    game_id = game.get("id")
-                    bookings = get_bookings(game_id)
-                    for b in bookings:
-                        delete_booking(b["id"])
-                    delete_game(game_id)
-        except Exception as e:
-            print("Ошибка в cleanup_old_games:", e)
+    try:
+        games = get_games()
+        now = datetime.now(timezone.utc)
+        for game in games:
+            raw_dt = game.get("datetime")
+            if not raw_dt:
+                continue
+            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
+            if (now - dt).total_seconds() > 3 * 86400:
+                game_id = game.get("id")
+                bookings = get_bookings(game_id)
+                for b in bookings:
+                    delete_booking(b["id"])
+                delete_game(game_id)
+    except Exception as e:
+        print("Ошибка в cleanup_old_games:", e)
 
 
 async def send_main_schedule(user_id: int):
@@ -500,8 +502,8 @@ async def on_startup():
 async def on_shutdown():
     scheduler.shutdown(wait=False)
 
-bot.loop_wrapper.on_startup.append(on_startup())
-bot.loop_wrapper.on_shutdown.append(on_shutdown())
+bot.loop_wrapper.on_startup.append(on_startup)
+bot.loop_wrapper.on_shutdown.append(on_shutdown)
 
 def main():
     print("Бот запускается...")
