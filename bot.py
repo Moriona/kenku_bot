@@ -1,13 +1,15 @@
 import asyncio
 import os
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from vkbottle import Keyboard, KeyboardButtonColor, Text, OpenLink, Callback, GroupEventType
 from vkbottle.bot import Bot, Message
 
 from database import get_games, get_bookings, add_booking, update_booked_count, get_user_bookings, cancel_booking, \
     get_waiting_first, change_status, update_notified, delete_game, delete_booking
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+SOCHI_TZ = timezone(timedelta(hours=3))
 
 TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
@@ -16,7 +18,13 @@ def format_date(game: dict) -> str:
     dt = game.get('datetime')
     if not dt or not dt.get('formatted_date'):
         return "Дата не указана"
-    return f'{dt['formatted_date']} (MSK, UTC+3)'
+    return f"{dt['formatted_date']} (MSK, UTC+3)"
+
+    # datetime_obj = game.get('datetime')
+    # if datetime_obj is None:
+    #     return "Дата не указана "
+    # formatted =  datetime_obj.get('formatted_date', 'Дата не указана')
+    # return formatted
 
 
 def get_game_by_id(games, game_id):
@@ -112,11 +120,11 @@ async def check_notifications():
     try:
         games = get_games()
         for game in games:
-            raw_dt = game.get("datetime")
+            raw_dt = game.get("datetime", 'не заполнено')
             if not raw_dt:
                 continue
-            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
-            delta = dt - datetime.now(timezone.utc)
+            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=SOCHI_TZ)
+            delta = dt - datetime.now(SOCHI_TZ)
             if 0 < delta.total_seconds() <= 86400 and not game.get("notified_day", False):
                 game_id = game.get("id")
                 bookings = get_bookings(game_id)
@@ -145,7 +153,7 @@ async def cleanup_old_games():
         games = get_games()
         now = datetime.now(timezone.utc)
         for game in games:
-            raw_dt = game.get("datetime")
+            raw_dt = game.get("datetime", 'не заполнено')
             if not raw_dt:
                 continue
             dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
@@ -166,7 +174,6 @@ async def send_main_schedule(user_id: int):
     response = "Доступные игры:\n\n"
     for game in games_open:
         response += f"🎲 {game['name']}\n"
-        response += f"📜 {game.get('description', 'не заполнено')}\n"
         response += f"🕵️‍♂️ Мастер: {game.get('game_master', 'не заполнено')}\n"
         response += f"⚙️ Система: {game.get('system', 'не заполнена')}\n"
         response += f"💫 Формат: {game.get('format', 'не заполнено')}\n"
@@ -486,6 +493,7 @@ async def personal_schedule(message: Message):
         response += f"{game.get('description', 'не заполнено')}\n"
         response += f"Система: {game.get('system', 'не заполнена')}\n"
         response += f"📅 {format_date(game)}\n"
+        response += f"📌 Адрес: {game.get('place', 'не заполнено')}\n"
         response += f"Стоимость: {game.get('price', 'бесплатно')}\n\n\n"
     await message.answer(response, keyboard=user_games_list_keyboard(user_games))
 

@@ -101,6 +101,8 @@ def cancel_booking(booking_id, status="cancelled"):
             'Authorization': f'Bearer {TABRIKA_TOKEN}'
         }
     )
+    print(response.status_code)
+    print(response.json())
 
 def change_status(booking_id, status):
     response = requests.put(
