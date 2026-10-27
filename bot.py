@@ -9,8 +9,6 @@ from database import get_games, get_bookings, add_booking, update_booked_count, 
     get_waiting_first, change_status, update_notified, delete_game, delete_booking
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# SOCHI_TZ = timezone(timedelta(hours=0))
-
 TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
 
@@ -19,13 +17,6 @@ def format_date(game: dict) -> str:
     if not dt or not dt.get('formatted_date'):
         return "Дата не указана"
     return f"{dt['formatted_date']} (MSK, UTC+3)"
-
-    # datetime_obj = game.get('datetime')
-    # if datetime_obj is None:
-    #     return "Дата не указана "
-    # formatted =  datetime_obj.get('formatted_date', 'Дата не указана')
-    # return formatted
-
 
 def get_game_by_id(games, game_id):
     return next((g for g in games if g.get("id") == game_id), None)
@@ -506,7 +497,6 @@ scheduler = AsyncIOScheduler()
 async def on_startup():
 
     scheduler.add_job(check_notifications, "interval", minutes=30)
-    # scheduler.add_job(cleanup_old_games, "interval", hours=24)
     scheduler.start()
     print("Scheduler started")
 
