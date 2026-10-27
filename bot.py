@@ -9,7 +9,7 @@ from database import get_games, get_bookings, add_booking, update_booked_count, 
     get_waiting_first, change_status, update_notified, delete_game, delete_booking
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-SOCHI_TZ = timezone(timedelta(hours=3))
+# SOCHI_TZ = timezone(timedelta(hours=0))
 
 TOKEN = os.environ.get("VK_TOKEN")
 bot = Bot(token=TOKEN)
@@ -119,12 +119,15 @@ def user_games_list_keyboard(games):
 async def check_notifications():
     try:
         games = get_games()
+        print(f"check_notifications: игр найдено {len(games)}")
         for game in games:
-            raw_dt = game.get("datetime", 'не заполнено')
+            raw_dt = game.get("datetime")
             if not raw_dt:
                 continue
-            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=SOCHI_TZ)
-            delta = dt - datetime.now(SOCHI_TZ)
+            dt = datetime.fromtimestamp(raw_dt['timestamp'], tz=timezone.utc)
+            dt = dt - timedelta(hours=3)
+            delta = dt - datetime.now(timezone.utc)
+            print(f"Игра: {game.get('name')}, delta секунд: {delta.total_seconds()}")
             if 0 < delta.total_seconds() <= 86400 and not game.get("notified_day", False):
                 game_id = game.get("id")
                 bookings = get_bookings(game_id)
@@ -503,7 +506,7 @@ scheduler = AsyncIOScheduler()
 async def on_startup():
 
     scheduler.add_job(check_notifications, "interval", minutes=30)
-    scheduler.add_job(cleanup_old_games, "interval", hours=24)
+    # scheduler.add_job(cleanup_old_games, "interval", hours=24)
     scheduler.start()
     print("Scheduler started")
 
