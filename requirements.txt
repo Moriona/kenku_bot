@@ -1,2 +1,3 @@
 vkbottle==4.8.1
 apscheduler
+requests
